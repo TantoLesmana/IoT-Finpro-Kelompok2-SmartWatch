@@ -1,16 +1,16 @@
-// Tinker Foundry
-// Accompanying video: https://youtu.be/xjwSKy6jzTI
-// Code for ESP32 to interface with MAX30102 breakout board and report blood oxygen level
-// Refer to https://github.com/DKARDU/bloodoxygen - below code is simplified version
-// https://www.analog.com/media/en/technical-documentation/data-sheets/MAX30102.pdf
-// Connections from WEMOS D1 R32 board to MAX30102 Breakout Board as follows:
-//  SCL (ESP32) to SCL (breakout board)
-//  SDA (ESP32) to SDA (breakout board)
-//  3V3 (ESP32) to VIN (breakout board)
-//  GND (ESP32) to GND (breakout board)
+#define BLYNK_TEMPLATE_ID "TMPL6tkliGpGD"
+#define BLYNK_TEMPLATE_NAME "finpro iot"
+#define BLYNK_AUTH_TOKEN "SAcbd3I4mzH2_bVaYn8A3i93_kZ83vwy"
 
 #include <Wire.h>
 #include "MAX30105.h" //sparkfun MAX3010X library
+#include "heartRate.h"
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+char ssid[] = "BananaXD";
+char pass[] = "&*kA4gu$x800=D";
+
 MAX30105 particleSensor;
 
 double avered    = 0; 
@@ -29,6 +29,15 @@ double frate     = 0.95; // low pass filter for IR/red LED value to eliminate AC
 #define SAMPLING   100 //25 //5     // if you want to see heart beat more precisely, set SAMPLING to 1
 #define FINGER_ON  30000 // if red signal is lower than this, it indicates your finger is not on the sensor
 #define USEFIFO
+
+// heartbeat calculations
+const byte RATE_SIZE = 4; //Increase this for more averaging. 4 is good.
+byte rates[RATE_SIZE]; //Array of heart rates
+byte rateSpot = 0;
+long lastBeat = 0; //Time at which the last beat occurred
+
+float beatsPerMinute;
+int beatAvg;
 
 
 void readOxygen(void *parameters) {
@@ -78,6 +87,8 @@ void readOxygen(void *parameters) {
             Serial.print("Oxygen % = ");
             Serial.print(ESpO2);
             Serial.println("%");
+
+            Blynk.virtualWrite(V2, ESpO2);
           }
         }
       }
@@ -97,8 +108,53 @@ void readOxygen(void *parameters) {
   }
 }
 
+void readHeartbeat(void *parameters) {
+  while(1) {
+    long irValue = particleSensor.getIR();
+
+    if (checkForBeat(irValue)) {
+      //We sensed a beat!
+      long delta = millis() - lastBeat;
+      lastBeat = millis();
+
+      beatsPerMinute = 60 / (delta / 1000.0);
+
+      if (beatsPerMinute < 255 && beatsPerMinute > 20) {
+        rates[rateSpot++] = (byte)beatsPerMinute; //Store this reading in the array
+        rateSpot %= RATE_SIZE; //Wrap variable
+
+        //Take average of readings
+        beatAvg = 0;
+        for (byte x = 0 ; x < RATE_SIZE ; x++)
+          beatAvg += rates[x];
+        beatAvg /= RATE_SIZE;
+      }
+
+      Serial.print("IR=");
+      Serial.print(irValue);
+      Serial.print(", BPM=");
+      Serial.print(beatsPerMinute);
+      Serial.print(", Avg BPM=");
+      Serial.println(beatAvg);
+    }
+  }
+}
+
+BLYNK_WRITE(V0) { // mengambil suhu dari rumah
+  Serial.print("Suhu: ");
+  Serial.print(param.asDouble());
+  Serial.println(" °C");
+}
+
+BLYNK_WRITE(V1) { // mengambil kelembapan dari rumah
+  Serial.print("Kelembapan: ");
+  Serial.print(param.asDouble());
+  Serial.println(" %");
+}
+
 void setup() {
   Serial.begin(115200);
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
   Serial.setDebugOutput(true);
   Serial.println();
 
@@ -128,16 +184,24 @@ void setup() {
   // create task oxygen
   xTaskCreatePinnedToCore(readOxygen,
                           "Read Oxygen Level",
-                          2048,
+                          4096,
                           NULL,
                           1,
                           NULL,
                           0);
+
+  // // create task heartbeat
+  // xTaskCreatePinnedToCore(readHeartbeat,
+  //                         "Read Heart BPM",
+  //                         4096,
+  //                         NULL,
+  //                         1,
+  //                         NULL,
+  //                         1);
 
   // Delete "setup and loop" task
   vTaskDelete(NULL);
 }
 
 void loop() {
-  // Execution should never get here
 }
