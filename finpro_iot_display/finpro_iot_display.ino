@@ -1,6 +1,6 @@
-#define BLYNK_TEMPLATE_ID "TMPL6tkliGpGD"
+#define BLYNK_TEMPLATE_ID "TMPL6Ic1HFZR2"
 #define BLYNK_TEMPLATE_NAME "finpro iot"
-#define BLYNK_AUTH_TOKEN "SAcbd3I4mzH2_bVaYn8A3i93_kZ83vwy"
+#define BLYNK_AUTH_TOKEN "xPCktTn6TcbyRq6AQ6jMq2i0aaOUd-Jn"
 /*  Rui Santos & Sara Santos - Random Nerd Tutorials
     THIS EXAMPLE WAS TESTED WITH THE FOLLOWING HARDWARE:
     1) ESP32-2432S028R 2.8 inch 240×320 also known as the Cheap Yellow Display (CYD): https://makeradvisor.com/tools/cyd-cheap-yellow-display-esp32-2432s028r/
@@ -26,8 +26,13 @@
 // Install the "XPT2046_Touchscreen" library by Paul Stoffregen to use the Touchscreen - https://github.com/PaulStoffregen/XPT2046_Touchscreen - Note: this library doesn't require further configuration
 #include <XPT2046_Touchscreen.h>
 
+#include <Wire.h>
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
+#include <time.h>
+
+const char ntpServer[] = "id.pool.ntp.org";
+String currentTime;
 
 char ssid[] = "loltotan";
 char pass[] = "ntnt1234";
@@ -58,6 +63,25 @@ void log_print(lv_log_level_t level, const char * buf) {
   LV_UNUSED(level);
   Serial.println(buf);
   Serial.flush();
+}
+
+String currentHourMinute;
+
+void updateTimeTask(void *pvParameters) {
+  while (1) {
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      char timeString[40];
+      strftime(timeString, sizeof(timeString), "%A, %d %B %Y %H:%M:%S", &timeinfo);
+      currentTime = String(timeString);
+
+      // Extract hour and minute
+      char hourMinuteString[6];
+      strftime(hourMinuteString, sizeof(hourMinuteString), "%H:%M", &timeinfo);
+      currentHourMinute = String(hourMinuteString);
+    }
+    delay(5000); // Update time every 5 seconds
+  }
 }
 
 // Get the Touchscreen data
@@ -146,12 +170,12 @@ void lv_create_main_gui(void) {
   lv_obj_set_style_text_align(text_label2, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(text_label2, LV_ALIGN_CENTER, 0, -10);
 
-  lv_obj_t * text_label3 = lv_label_create(lv_screen_active());
-  lv_label_set_long_mode(text_label3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
-  lv_label_set_text(text_label3, suhu_buffer);
-  lv_obj_set_width(text_label3, 150);    // Set smaller width to make the lines wrap
-  lv_obj_set_style_text_align(text_label3, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align(text_label3, LV_ALIGN_CENTER, 0, 15);
+  // lv_obj_t * text_label3 = lv_label_create(lv_screen_active());
+  // lv_label_set_long_mode(text_label3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
+  // lv_label_set_text(text_label3, suhu_buffer);
+  // lv_obj_set_width(text_label3, 150);    // Set smaller width to make the lines wrap
+  // lv_obj_set_style_text_align(text_label3, LV_TEXT_ALIGN_CENTER, 0);
+  // lv_obj_align(text_label3, LV_ALIGN_CENTER, 0, 15);
 
     lv_obj_t * text_labelL2 = lv_label_create(lv_screen_active());
   lv_label_set_long_mode(text_labelL2, LV_LABEL_LONG_WRAP);    // Breaks the long lines
@@ -160,12 +184,12 @@ void lv_create_main_gui(void) {
   lv_obj_set_style_text_align(text_labelL2, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(text_labelL2, LV_ALIGN_CENTER, -110, -10);
 
-  lv_obj_t * text_labelL3 = lv_label_create(lv_screen_active());
-  lv_label_set_long_mode(text_labelL3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
-  lv_label_set_text(text_labelL3, kelembapan_buffer);
-  lv_obj_set_width(text_labelL3, 150);    // Set smaller width to make the lines wrap
-  lv_obj_set_style_text_align(text_labelL3, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align(text_labelL3, LV_ALIGN_CENTER, -110, 15);
+  // lv_obj_t * text_labelL3 = lv_label_create(lv_screen_active());
+  // lv_label_set_long_mode(text_labelL3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
+  // lv_label_set_text(text_labelL3, kelembapan_buffer);
+  // lv_obj_set_width(text_labelL3, 150);    // Set smaller width to make the lines wrap
+  // lv_obj_set_style_text_align(text_labelL3, LV_TEXT_ALIGN_CENTER, 0);
+  // lv_obj_align(text_labelL3, LV_ALIGN_CENTER, -110, 15);
 
   lv_obj_t * text_labelT2 = lv_label_create(lv_screen_active());
   lv_label_set_long_mode(text_labelT2, LV_LABEL_LONG_WRAP);    // Breaks the long lines
@@ -174,26 +198,26 @@ void lv_create_main_gui(void) {
   lv_obj_set_style_text_align(text_labelT2, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(text_labelT2, LV_ALIGN_CENTER, 110, -10);
 
-  lv_obj_t * text_labelT3 = lv_label_create(lv_screen_active());
-  lv_label_set_long_mode(text_labelT3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
-  lv_label_set_text(text_labelT3, oxygen_buffer);
-  lv_obj_set_width(text_labelT3, 150);    // Set smaller width to make the lines wrap
-  lv_obj_set_style_text_align(text_labelT3, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align(text_labelT3, LV_ALIGN_CENTER, 110, 15);
+  // lv_obj_t * text_labelT3 = lv_label_create(lv_screen_active());
+  // lv_label_set_long_mode(text_labelT3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
+  // lv_label_set_text(text_labelT3, oxygen_buffer);
+  // lv_obj_set_width(text_labelT3, 150);    // Set smaller width to make the lines wrap
+  // lv_obj_set_style_text_align(text_labelT3, LV_TEXT_ALIGN_CENTER, 0);
+  // lv_obj_align(text_labelT3, LV_ALIGN_CENTER, 110, 15);
 
-  lv_obj_t * text_labelclock = lv_label_create(lv_screen_active());
-  lv_label_set_long_mode(text_labelclock, LV_LABEL_LONG_WRAP);    // Breaks the long lines
-  lv_label_set_text(text_labelclock, "12:34");
-  lv_obj_set_width(text_labelclock, 150);    // Set smaller width to make the lines wrap
-  lv_obj_set_style_text_align(text_labelclock, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align(text_labelclock, LV_ALIGN_CENTER, 0, -50);
+  // lv_obj_t * text_labelclock = lv_label_create(lv_screen_active());
+  // lv_label_set_long_mode(text_labelclock, LV_LABEL_LONG_WRAP);    // Breaks the long lines
+  // lv_label_set_text(text_labelclock, "12:34");
+  // lv_obj_set_width(text_labelclock, 150);    // Set smaller width to make the lines wrap
+  // lv_obj_set_style_text_align(text_labelclock, LV_TEXT_ALIGN_CENTER, 0);
+  // lv_obj_align(text_labelclock, LV_ALIGN_CENTER, 0, -50);
 
-  static lv_style_t style;
-  lv_style_init(&style);
-  lv_style_set_text_font(&style, &lv_font_montserrat_20); // Set font size to 20
+  // static lv_style_t style;
+  // lv_style_init(&style);
+  // lv_style_set_text_font(&style, &lv_font_montserrat_20); // Set font size to 20
 
-  // Apply the style to the label
-  lv_obj_add_style(text_labelclock, &style, 0);
+  // // Apply the style to the label
+  // lv_obj_add_style(text_labelclock, &style, 0);
 
   lv_obj_t * btn_label;
   // Create a Button (btn1)
@@ -225,7 +249,7 @@ void lv_create_main_gui(void) {
 
   lv_obj_t * text_labelD3 = lv_label_create(lv_screen_active());
   lv_label_set_long_mode(text_labelD3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
-  lv_label_set_text(text_labelD3, "Temperature too high!");
+  lv_label_set_text(text_labelD3, "Everything is normal :D");
   lv_obj_set_width(text_labelD3, 250);    // Set smaller width to make the lines wrap
   lv_obj_set_style_text_align(text_labelD3, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(text_labelD3, LV_ALIGN_CENTER, 0, 75);
@@ -246,28 +270,35 @@ void blynkTask(void *parameters) {
     Blynk.syncVirtual(V1); // Sync humidity
     Blynk.syncVirtual(V2); // Sync Oxygen
 
-    // // Use currentTime for any time-dependent logic
-    // Serial.print("Current Time: ");
-    // Serial.println(currentTime);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    // Use currentTime for any time-dependent logic
+    Serial.print("Current Time: ");
+    Serial.println(currentHourMinute);
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
 }
 
 BLYNK_WRITE(V0) { // mengambil suhu dari rumah
   suhu = param.asDouble();
+  Serial.print("Updated suhu: ");
+  Serial.println(suhu);
 }
 
 BLYNK_WRITE(V1) { // mengambil kelembapan dari rumah
   kelembapan = param.asDouble();
+  Serial.print("Updated kelembapan: ");
+  Serial.println(kelembapan);
 }
 
 BLYNK_WRITE(V2) { // mengambil kelembapan dari rumah
   oxygen = param.asDouble();
+  Serial.print("Updated oxygen: ");
+  Serial.println(oxygen);
 }
 
 void setup() {
   Blynk.config(BLYNK_AUTH_TOKEN);
   WiFi.begin(ssid, pass);
+  configTime(7 * 3600, 0, ntpServer);
   String LVGL_Arduino = String("LVGL Library Version: ") + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Serial.begin(115200);
   Serial.println(LVGL_Arduino);
@@ -301,6 +332,16 @@ void setup() {
 
   // Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 
+  xTaskCreatePinnedToCore(
+    updateTimeTask,
+    "Update Time Task",
+    2048,
+    NULL,
+    1,
+    NULL,
+    1 // Core 1
+  );
+  
   // create task blynk
   xTaskCreatePinnedToCore(blynkTask,
                           "Run Blynk",
@@ -315,6 +356,73 @@ void loop() {
   lv_task_handler();  // let the GUI do its work
   lv_tick_inc(5);     // tell LVGL how much time has passed
 
+  Serial.print("Temperature (suhu): ");
+  Serial.println(suhu);
+  Serial.print("Humidity (kelembapan): ");
+  Serial.println(kelembapan);
+  Serial.print("Oxygen Level: ");
+  Serial.println(oxygen);
+
   Serial.println(Blynk.connected());
+  updateTemperatureDisplay(suhu);
+  updateHumidityDisplay(kelembapan);
+  updateOxygenDisplay(oxygen);
+  updateTimeDisplay(currentHourMinute);
+
   delay(1000);           // let this time pass
+}
+
+void updateTemperatureDisplay(double temperature) {
+    // Find the temperature label in the GUI and update its text
+    static lv_obj_t * text_label3 = lv_label_create(lv_screen_active());
+    char tempStr[16];
+    snprintf(tempStr, sizeof(tempStr), "%.1f C", temperature);
+    lv_label_set_long_mode(text_label3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
+    lv_label_set_text(text_label3, tempStr);
+    lv_obj_set_width(text_label3, 150);    // Set smaller width to make the lines wrap
+    lv_obj_set_style_text_align(text_label3, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(text_label3, LV_ALIGN_CENTER, 0, 15);
+}
+
+void updateHumidityDisplay(double humidity) {
+    // Find the temperature label in the GUI and update its text
+    static lv_obj_t * text_labelL3 = lv_label_create(lv_screen_active());
+    char tempStr[16];
+    snprintf(tempStr, sizeof(tempStr), "%.1f %", humidity);
+    lv_label_set_long_mode(text_labelL3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
+    lv_label_set_text(text_labelL3, tempStr);
+    lv_obj_set_width(text_labelL3, 150);    // Set smaller width to make the lines wrap
+    lv_obj_set_style_text_align(text_labelL3, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(text_labelL3, LV_ALIGN_CENTER, -110, 15);
+}
+
+void updateOxygenDisplay(double oxygen) {
+    // Find the temperature label in the GUI and update its text
+    static lv_obj_t * text_labelT3 = lv_label_create(lv_screen_active());
+    char tempStr[16];
+    snprintf(tempStr, sizeof(tempStr), "%.1f %", oxygen);
+    lv_label_set_long_mode(text_labelT3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
+    lv_label_set_text(text_labelT3, tempStr);
+    lv_obj_set_width(text_labelT3, 150);    // Set smaller width to make the lines wrap
+    lv_obj_set_style_text_align(text_labelT3, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(text_labelT3, LV_ALIGN_CENTER, 110, 15);
+}
+
+void updateTimeDisplay(String time) {
+    // Find the temperature label in the GUI and update its text
+    static lv_obj_t * text_labelclock = lv_label_create(lv_screen_active());
+    // char tempStr[16];
+    // snprintf(tempStr, sizeof(tempStr), "%.1f %", oxygen);
+    lv_label_set_long_mode(text_labelclock, LV_LABEL_LONG_WRAP);    // Breaks the long lines
+    lv_label_set_text(text_labelclock, time.c_str());
+    lv_obj_set_width(text_labelclock, 150);    // Set smaller width to make the lines wrap
+    lv_obj_set_style_text_align(text_labelclock, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_align(text_labelclock, LV_ALIGN_CENTER, 0, -50);
+
+    static lv_style_t style;
+    lv_style_init(&style);
+    lv_style_set_text_font(&style, &lv_font_montserrat_20); // Set font size to 20
+
+    // Apply the style to the label
+    lv_obj_add_style(text_labelclock, &style, 0);
 }

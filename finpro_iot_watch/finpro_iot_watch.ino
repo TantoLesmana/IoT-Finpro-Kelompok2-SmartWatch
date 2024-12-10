@@ -1,6 +1,6 @@
-#define BLYNK_TEMPLATE_ID "TMPL6tkliGpGD"
+#define BLYNK_TEMPLATE_ID "TMPL6Ic1HFZR2"
 #define BLYNK_TEMPLATE_NAME "finpro iot"
-#define BLYNK_AUTH_TOKEN "SAcbd3I4mzH2_bVaYn8A3i93_kZ83vwy"
+#define BLYNK_AUTH_TOKEN "xPCktTn6TcbyRq6AQ6jMq2i0aaOUd-Jn"
 
 #include <Wire.h>
 #include "MAX30105.h" //sparkfun MAX3010X library
@@ -165,7 +165,7 @@ void blynkTask(void *parameters) {
     // Use currentTime for any time-dependent logic
     Serial.print("Current Time: ");
     Serial.println(currentTime);
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
 }
 
@@ -189,7 +189,7 @@ void setup() {
   Serial.println();
 
   Serial.println("Running...");
-  delay(3000);
+  delay(1000);
 
   // Initialize sensor
   while (!particleSensor.begin(Wire, I2C_SPEED_FAST)) { //Use default I2C port, 400kHz speed

@@ -1,6 +1,6 @@
-#define BLYNK_TEMPLATE_ID "TMPL6tkliGpGD"
+#define BLYNK_TEMPLATE_ID "TMPL6Ic1HFZR2"
 #define BLYNK_TEMPLATE_NAME "finpro iot"
-#define BLYNK_AUTH_TOKEN "SAcbd3I4mzH2_bVaYn8A3i93_kZ83vwy"
+#define BLYNK_AUTH_TOKEN "xPCktTn6TcbyRq6AQ6jMq2i0aaOUd-Jn"
 
 #include "DHT.h"
 #include <WiFi.h>
@@ -9,8 +9,8 @@
 #define DHTPIN 4
 #define DHTTYPE DHT11
 
-char ssid[] = "BananaXD";
-char pass[] = "&*kA4gu$x800=D";
+char ssid[] = "loltotan";
+char pass[] = "ntnt1234";
 
 static const TickType_t DHT_TIMEOUT = 5000 / portTICK_PERIOD_MS; // dht timeout timer 5s
 static TimerHandle_t DHT_TIMER = NULL;
@@ -59,7 +59,7 @@ void doDHT(void *parameters) {
       xTimerStart(DHT_TIMER, portMAX_DELAY);
     }
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
   }
 }
 
