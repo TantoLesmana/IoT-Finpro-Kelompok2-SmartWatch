@@ -7,13 +7,17 @@
 #include "heartRate.h"
 #include <WiFi.h>
 #include <BlynkSimpleEsp32.h>
+#include <time.h>
 
-char ssid[] = "BananaXD";
-char pass[] = "&*kA4gu$x800=D";
+const char ntpServer[] = "id.pool.ntp.org";
+String currentTime;
+
+char ssid[] = "loltotan";
+char pass[] = "ntnt1234";
 
 MAX30105 particleSensor;
 
-double avered    = 0; 
+double avered    = 0;
 double aveir     = 0;
 double sumirrms  = 0;
 double sumredrms = 0;
@@ -39,6 +43,18 @@ long lastBeat = 0; //Time at which the last beat occurred
 float beatsPerMinute;
 int beatAvg;
 
+// Function to update time
+void updateTimeTask(void *pvParameters) {
+  while (1) {
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      char timeString[40];
+      strftime(timeString, sizeof(timeString), "%A, %d %B %Y %H:%M:%S", &timeinfo);
+      currentTime = String(timeString);
+    }
+    delay(5000); // Update time every 5 seconds
+  }
+}
 
 void readOxygen(void *parameters) {
   while(1) {
@@ -141,13 +157,14 @@ void readHeartbeat(void *parameters) {
 }
 
 void blynkTask(void *parameters) {
-  while(1) {
+  while (1) {
     Blynk.run();
-
-    // Request current values from Blynk server
     Blynk.syncVirtual(V0); // Sync temperature
     Blynk.syncVirtual(V1); // Sync humidity
 
+    // Use currentTime for any time-dependent logic
+    Serial.print("Current Time: ");
+    Serial.println(currentTime);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
   }
 }
@@ -168,6 +185,7 @@ void setup() {
   Serial.begin(115200);
   Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
   Serial.setDebugOutput(true);
+  configTime(7 * 3600, 0, ntpServer);
   Serial.println();
 
   Serial.println("Running...");
@@ -192,6 +210,17 @@ void setup() {
   particleSensor.setup(ledBrightness, sampleAverage, ledMode, sampleRate, pulseWidth, adcRange); //Configure sensor with these settings
 
   particleSensor.enableDIETEMPRDY();
+
+  xTaskCreatePinnedToCore(
+    updateTimeTask,
+    "Update Time Task",
+    2048,
+    NULL,
+    1,
+    NULL,
+    1 // Core 1
+);
+
 
   // create task oxygen
   xTaskCreatePinnedToCore(readOxygen,
