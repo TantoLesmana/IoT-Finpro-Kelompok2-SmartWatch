@@ -140,6 +140,18 @@ void readHeartbeat(void *parameters) {
   }
 }
 
+void blynkTask(void *parameters) {
+  while(1) {
+    Blynk.run();
+
+    // Request current values from Blynk server
+    Blynk.syncVirtual(V0); // Sync temperature
+    Blynk.syncVirtual(V1); // Sync humidity
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
 BLYNK_WRITE(V0) { // mengambil suhu dari rumah
   Serial.print("Suhu: ");
   Serial.print(param.asDouble());
@@ -198,6 +210,15 @@ void setup() {
   //                         1,
   //                         NULL,
   //                         1);
+
+  // create task blynk
+  xTaskCreatePinnedToCore(blynkTask,
+                          "Run Blynk",
+                          4096,
+                          NULL,
+                          1,
+                          NULL,
+                          1);
 
   // Delete "setup and loop" task
   vTaskDelete(NULL);
