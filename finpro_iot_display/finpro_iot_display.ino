@@ -1,3 +1,6 @@
+#define BLYNK_TEMPLATE_ID "TMPL6tkliGpGD"
+#define BLYNK_TEMPLATE_NAME "finpro iot"
+#define BLYNK_AUTH_TOKEN "SAcbd3I4mzH2_bVaYn8A3i93_kZ83vwy"
 /*  Rui Santos & Sara Santos - Random Nerd Tutorials
     THIS EXAMPLE WAS TESTED WITH THE FOLLOWING HARDWARE:
     1) ESP32-2432S028R 2.8 inch 240×320 also known as the Cheap Yellow Display (CYD): https://makeradvisor.com/tools/cyd-cheap-yellow-display-esp32-2432s028r/
@@ -22,6 +25,14 @@
 
 // Install the "XPT2046_Touchscreen" library by Paul Stoffregen to use the Touchscreen - https://github.com/PaulStoffregen/XPT2046_Touchscreen - Note: this library doesn't require further configuration
 #include <XPT2046_Touchscreen.h>
+
+#include <WiFi.h>
+#include <BlynkSimpleEsp32.h>
+
+char ssid[] = "loltotan";
+char pass[] = "ntnt1234";
+
+double suhu, kelembapan, oxygen; // var global
 
 // Touchscreen pins
 #define XPT2046_IRQ 36   // T_IRQ
@@ -112,6 +123,13 @@ static void slider_event_callback(lv_event_t * e) {
 }
 
 void lv_create_main_gui(void) {
+  char suhu_buffer[10];
+  char kelembapan_buffer[10];
+  char oxygen_buffer[10];
+
+  dtostrf(suhu, 6, 2, suhu_buffer); // Convert suhu_blynk to string
+  dtostrf(kelembapan, 6, 2, kelembapan_buffer); // Convert kelembapan_blynk to string
+  dtostrf(oxygen, 6, 2, oxygen_buffer); // Convert oxygen_blynk to string
 
   // Create a text label aligned center on top ("Hello, world!")
   lv_obj_t * text_label = lv_label_create(lv_screen_active());
@@ -130,7 +148,7 @@ void lv_create_main_gui(void) {
 
   lv_obj_t * text_label3 = lv_label_create(lv_screen_active());
   lv_label_set_long_mode(text_label3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
-  lv_label_set_text(text_label3, "20 C");
+  lv_label_set_text(text_label3, suhu_buffer);
   lv_obj_set_width(text_label3, 150);    // Set smaller width to make the lines wrap
   lv_obj_set_style_text_align(text_label3, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(text_label3, LV_ALIGN_CENTER, 0, 15);
@@ -144,7 +162,7 @@ void lv_create_main_gui(void) {
 
   lv_obj_t * text_labelL3 = lv_label_create(lv_screen_active());
   lv_label_set_long_mode(text_labelL3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
-  lv_label_set_text(text_labelL3, "60%");
+  lv_label_set_text(text_labelL3, kelembapan_buffer);
   lv_obj_set_width(text_labelL3, 150);    // Set smaller width to make the lines wrap
   lv_obj_set_style_text_align(text_labelL3, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(text_labelL3, LV_ALIGN_CENTER, -110, 15);
@@ -158,7 +176,7 @@ void lv_create_main_gui(void) {
 
   lv_obj_t * text_labelT3 = lv_label_create(lv_screen_active());
   lv_label_set_long_mode(text_labelT3, LV_LABEL_LONG_WRAP);    // Breaks the long lines
-  lv_label_set_text(text_labelT3, "50%");
+  lv_label_set_text(text_labelT3, oxygen_buffer);
   lv_obj_set_width(text_labelT3, 150);    // Set smaller width to make the lines wrap
   lv_obj_set_style_text_align(text_labelT3, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align(text_labelT3, LV_ALIGN_CENTER, 110, 15);
@@ -213,7 +231,43 @@ void lv_create_main_gui(void) {
   lv_obj_align(text_labelD3, LV_ALIGN_CENTER, 0, 75);
 }
 
+void blynkTask(void *parameters) {
+  while (1) {
+    if (WiFi.status() == WL_CONNECTED) {
+      Blynk.run();  // Process Blynk tasks
+    } else {
+      // Reconnect to Wi-Fi if disconnected
+      if (WiFi.status() != WL_CONNECTED) {
+          WiFi.begin(ssid, pass);
+      }
+    }
+
+    Blynk.syncVirtual(V0); // Sync temperature
+    Blynk.syncVirtual(V1); // Sync humidity
+    Blynk.syncVirtual(V2); // Sync Oxygen
+
+    // // Use currentTime for any time-dependent logic
+    // Serial.print("Current Time: ");
+    // Serial.println(currentTime);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+}
+
+BLYNK_WRITE(V0) { // mengambil suhu dari rumah
+  suhu = param.asDouble();
+}
+
+BLYNK_WRITE(V1) { // mengambil kelembapan dari rumah
+  kelembapan = param.asDouble();
+}
+
+BLYNK_WRITE(V2) { // mengambil kelembapan dari rumah
+  oxygen = param.asDouble();
+}
+
 void setup() {
+  Blynk.config(BLYNK_AUTH_TOKEN);
+  WiFi.begin(ssid, pass);
   String LVGL_Arduino = String("LVGL Library Version: ") + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
   Serial.begin(115200);
   Serial.println(LVGL_Arduino);
@@ -244,10 +298,23 @@ void setup() {
 
   // Function to draw the GUI (text, buttons and sliders)
   lv_create_main_gui();
+
+  // Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+  // create task blynk
+  xTaskCreatePinnedToCore(blynkTask,
+                          "Run Blynk",
+                          4096,
+                          NULL,
+                          1,
+                          NULL,
+                          1);
 }
 
 void loop() {
   lv_task_handler();  // let the GUI do its work
   lv_tick_inc(5);     // tell LVGL how much time has passed
-  delay(5);           // let this time pass
+
+  Serial.println(Blynk.connected());
+  delay(1000);           // let this time pass
 }
